@@ -33,6 +33,19 @@ async fn main() -> anyhow::Result<()> {
         .route("/profits", get(controllers::profit::all))
         .route("/profits/create", post(controllers::profit::create))
         .route("/profits/:user_id", get(controllers::profit::fetch))
+        .route("/violation/create", post(controllers::violation::create))
+        .route(
+            "/competition-winner/create",
+            post(controllers::competition_winner::create),
+        )
+        .route(
+            "/trade-winner/create",
+            post(controllers::trade_winner::create),
+        )
+        .route(
+            "/shared-idea/create",
+            post(controllers::shared_idea::create),
+        )
         .layer(TraceLayer::new_for_http())
         .with_state(pool);
 

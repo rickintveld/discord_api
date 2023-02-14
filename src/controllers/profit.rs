@@ -1,11 +1,9 @@
+use crate::{errors::CustomError, models::profit};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-
 use axum::Json;
 use sqlx::SqlitePool;
-
-use crate::{errors::CustomError, models::profit};
 
 pub async fn all(State(pool): State<SqlitePool>) -> impl IntoResponse {
     let sql = r#"SELECT * FROM profit "#.to_string();
