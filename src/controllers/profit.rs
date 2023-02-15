@@ -26,7 +26,7 @@ pub async fn fetch(
         .bind(user_id)
         .fetch_one(&pool)
         .await
-        .map_err(|_| CustomError::ProfitNotFound)?;
+        .map_err(|_| CustomError::RecordNotFound)?;
 
     Ok(Json(profit))
 }

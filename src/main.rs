@@ -39,6 +39,18 @@ async fn main() -> anyhow::Result<()> {
             post(controllers::competition_winner::create),
         )
         .route(
+            "/competition-winner/leader-board",
+            get(controllers::competition_winner::fetch_all),
+        )
+        .route(
+            "/competition-winner/leader-board/:id",
+            get(controllers::competition_winner::fetch),
+        )
+        .route(
+            "/competition-winner/leader-board/user/:id",
+            get(controllers::competition_winner::fetch_by_user_id),
+        )
+        .route(
             "/trade-winner/create",
             post(controllers::trade_winner::create),
         )

@@ -2,7 +2,7 @@ use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde_json::json;
 
 pub enum CustomError {
-    ProfitNotFound,
+    RecordNotFound,
     InternalServerError,
 }
 
@@ -12,7 +12,7 @@ impl IntoResponse for CustomError {
             Self::InternalServerError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
             }
-            Self::ProfitNotFound => (StatusCode::NOT_FOUND, "Task Not Found"),
+            Self::RecordNotFound => (StatusCode::NOT_FOUND, "Task Not Found"),
         };
         (status, Json(json!({ "error": error_message }))).into_response()
     }

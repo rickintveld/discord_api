@@ -8,7 +8,7 @@ pub async fn create(
     State(pool): State<SqlitePool>,
     Json(winner): Json<trade_winner::NewTradeWinner>,
 ) -> Result<(StatusCode, Json<trade_winner::NewTradeWinner>), CustomError> {
-    let sql = r#"INSERT INTO trade_winner (user_id, url) values (?, ?)"#;
+    let sql = r#"INSERT INTO trade_winner (user_id, url) values (?, ?)"#.to_string();
 
     let _ = sqlx::query(&sql)
         .bind(&winner.user_id)

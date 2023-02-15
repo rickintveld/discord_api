@@ -8,7 +8,7 @@ pub async fn create(
     State(pool): State<SqlitePool>,
     Json(idea): Json<shared_idea::NewSharedIdea>,
 ) -> Result<(StatusCode, Json<shared_idea::NewSharedIdea>), CustomError> {
-    let sql = r#"INSERT INTO shared_idea (user_id, url) values (?, ?)"#;
+    let sql = r#"INSERT INTO shared_idea (user_id, url) values (?, ?)"#.to_string();
 
     let _ = sqlx::query(&sql)
         .bind(&idea.user_id)

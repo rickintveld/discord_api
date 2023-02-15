@@ -8,7 +8,7 @@ pub async fn create(
     State(pool): State<SqlitePool>,
     Json(violation): Json<violation::NewViolation>,
 ) -> Result<(StatusCode, Json<violation::NewViolation>), CustomError> {
-    let sql = r#"INSERT INTO violation (user_id, violation) values (?, ?)"#;
+    let sql = r#"INSERT INTO violation (user_id, violation) values (?, ?)"#.to_string();
 
     let _ = sqlx::query(&sql)
         .bind(&violation.user_id)
