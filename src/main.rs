@@ -2,8 +2,9 @@ use axum::{
     routing::{get, post},
     Router,
 };
-
+use dotenvy::dotenv;
 use sqlx::sqlite::SqlitePoolOptions;
+use std::env;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -14,6 +15,10 @@ mod models;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").unwrap();
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("tower_http=trace")
@@ -24,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
 
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect("sqlite://database.db")
+        .connect(&database_url)
         .await
         .expect("Could not connect to database");
 
