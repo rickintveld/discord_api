@@ -1,7 +1,4 @@
-use axum::{
-    routing::{get, post},
-    Router,
-};
+use axum::{routing::get, Router};
 use dotenvy::dotenv;
 use sqlx::sqlite::SqlitePoolOptions;
 use std::env;
@@ -28,55 +25,36 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let pool = SqlitePoolOptions::new()
-        .max_connections(5)
+        .max_connections(1)
         .connect(&database_url)
         .await
         .expect("Could not connect to database");
 
+    let profit_routing = controllers::profit::routing();
+    let violation_router = controllers::violation::routing();
+    let competition_router = controllers::competition_winner::routing();
+    let trade_winner_route = controllers::trade_winner::routing();
+    let shared_idea_route = controllers::shared_idea::routing();
+
     let app = Router::new()
         .route("/", get(root))
-        .route("/profits", get(controllers::profit::all))
-        .route("/profits/create", post(controllers::profit::create))
-        .route("/profits/:user_id", get(controllers::profit::fetch))
-        .route("/violation/create", post(controllers::violation::create))
-        .route(
-            "/competition-winner/create",
-            post(controllers::competition_winner::create),
-        )
-        .route(
-            "/competition-winner/leader-board",
-            get(controllers::competition_winner::fetch_all),
-        )
-        .route(
-            "/competition-winner/leader-board/:id",
-            get(controllers::competition_winner::fetch),
-        )
-        .route(
-            "/competition-winner/leader-board/user/:id",
-            get(controllers::competition_winner::fetch_by_user_id),
-        )
-        .route(
-            "/trade-winner/create",
-            post(controllers::trade_winner::create),
-        )
-        .route(
-            "/shared-idea/create",
-            post(controllers::shared_idea::create),
-        )
+        .nest("/profits", profit_routing)
+        .nest("/violation", violation_router)
+        .nest("/competition", competition_router)
+        .nest("/trade-winners", trade_winner_route)
+        .nest("/shared-idea", shared_idea_route)
         .layer(TraceLayer::new_for_http())
-        .with_state(pool);
+        .with_state(pool)
+        .into_make_service();
 
     let address: SocketAddr = SocketAddr::from(([127, 0, 0, 1], 8000));
     println!("listening on {}", address);
 
-    axum::Server::bind(&address)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    axum::Server::bind(&address).serve(app).await.unwrap();
 
     Ok(())
 }
 
 async fn root() -> &'static str {
-    "Hello, World!"
+    "Hello, traders!"
 }

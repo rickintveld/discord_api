@@ -3,9 +3,23 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
-use sqlx::SqlitePool;
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use sqlx::{Pool, Sqlite, SqlitePool};
 
-pub async fn create(
+pub fn routing() -> Router<Pool<Sqlite>> {
+    let router = Router::new()
+        .route("/create", post(create))
+        .route("/leader-board", get(fetch_all))
+        .route("/leader-board/:id", get(fetch))
+        .route("/leader-board/user/:id", get(fetch_by_user_id));
+
+    router
+}
+
+async fn create(
     State(pool): State<SqlitePool>,
     Json(winner): Json<competition_winner::NewCompetitionWinner>,
 ) -> Result<(StatusCode, Json<competition_winner::NewCompetitionWinner>), CustomError> {
@@ -25,7 +39,7 @@ pub async fn create(
     Ok((StatusCode::CREATED, Json(winner)))
 }
 
-pub async fn fetch(
+async fn fetch(
     State(pool): State<SqlitePool>,
     Path(id): Path<i32>,
 ) -> Result<Json<competition_winner::CompetitionWinner>, CustomError> {
@@ -40,7 +54,7 @@ pub async fn fetch(
     Ok(Json(competition_winner))
 }
 
-pub async fn fetch_all(State(pool): State<SqlitePool>) -> impl IntoResponse {
+async fn fetch_all(State(pool): State<SqlitePool>) -> impl IntoResponse {
     let sql = r#"SELECT * FROM competition_winner"#.to_string();
 
     let competition_winners = sqlx::query_as::<_, competition_winner::CompetitionWinner>(&sql)
@@ -51,7 +65,7 @@ pub async fn fetch_all(State(pool): State<SqlitePool>) -> impl IntoResponse {
     (StatusCode::OK, Json(competition_winners))
 }
 
-pub async fn fetch_by_user_id(
+async fn fetch_by_user_id(
     State(pool): State<SqlitePool>,
     Path(user_id): Path<i64>,
 ) -> impl IntoResponse {

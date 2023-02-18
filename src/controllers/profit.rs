@@ -3,9 +3,22 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
-use sqlx::SqlitePool;
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use sqlx::{Pool, Sqlite, SqlitePool};
 
-pub async fn all(State(pool): State<SqlitePool>) -> impl IntoResponse {
+pub fn routing() -> Router<Pool<Sqlite>> {
+    let router = Router::new()
+        .route("/", get(all))
+        .route("/create", post(create))
+        .route("/:user_id", get(fetch));
+
+    router
+}
+
+async fn all(State(pool): State<SqlitePool>) -> impl IntoResponse {
     let sql = r#"SELECT * FROM profit "#.to_string();
 
     let profits = sqlx::query_as::<_, profit::Profit>(&sql)
@@ -16,7 +29,7 @@ pub async fn all(State(pool): State<SqlitePool>) -> impl IntoResponse {
     (StatusCode::OK, Json(profits))
 }
 
-pub async fn fetch(
+async fn fetch(
     State(pool): State<SqlitePool>,
     Path(user_id): Path<i32>,
 ) -> Result<Json<profit::Profit>, CustomError> {
@@ -31,7 +44,7 @@ pub async fn fetch(
     Ok(Json(profit))
 }
 
-pub async fn create(
+async fn create(
     State(pool): State<SqlitePool>,
     Json(profit): Json<profit::NewProfit>,
 ) -> Result<(StatusCode, Json<profit::NewProfit>), CustomError> {

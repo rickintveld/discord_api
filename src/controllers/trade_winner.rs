@@ -2,9 +2,16 @@ use crate::{errors::CustomError, models::trade_winner};
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
-use sqlx::SqlitePool;
+use axum::{routing::post, Router};
+use sqlx::{Pool, Sqlite, SqlitePool};
 
-pub async fn create(
+pub fn routing() -> Router<Pool<Sqlite>> {
+    let router = Router::new().route("/create", post(create));
+
+    router
+}
+
+async fn create(
     State(pool): State<SqlitePool>,
     Json(winner): Json<trade_winner::NewTradeWinner>,
 ) -> Result<(StatusCode, Json<trade_winner::NewTradeWinner>), CustomError> {
