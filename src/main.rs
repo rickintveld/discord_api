@@ -1,6 +1,8 @@
+use axum::routing::IntoMakeService;
 use axum::{routing::get, Router};
 use dotenvy::dotenv;
 use sqlx::sqlite::SqlitePoolOptions;
+use sqlx::{Pool, Sqlite};
 use std::env;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
@@ -14,8 +16,6 @@ mod models;
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL").unwrap();
-
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("tower_http=trace")
@@ -24,19 +24,40 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let pool = SqlitePoolOptions::new()
+    let pool: Pool<Sqlite> = database_pool().await;
+    let application: IntoMakeService<Router> = application(pool);
+
+    let address: SocketAddr = SocketAddr::from(([127, 0, 0, 1], 8000));
+    println!("listening on {}", address);
+
+    axum::Server::bind(&address)
+        .serve(application)
+        .await
+        .unwrap();
+
+    Ok(())
+}
+
+async fn database_pool() -> Pool<Sqlite> {
+    let database_url: String = env::var("DATABASE_URL").unwrap();
+
+    let pool: Pool<Sqlite> = SqlitePoolOptions::new()
         .max_connections(1)
         .connect(&database_url)
         .await
         .expect("Could not connect to database");
 
-    let profit_routing = controllers::profit::routing();
-    let violation_router = controllers::violation::routing();
-    let competition_router = controllers::competition_winner::routing();
-    let trade_winner_route = controllers::trade_winner::routing();
-    let shared_idea_route = controllers::shared_idea::routing();
+    return pool;
+}
 
-    let app = Router::new()
+fn application(pool: Pool<Sqlite>) -> IntoMakeService<Router> {
+    let profit_routing: Router<Pool<Sqlite>> = controllers::profit::routing();
+    let violation_router: Router<Pool<Sqlite>> = controllers::violation::routing();
+    let competition_router: Router<Pool<Sqlite>> = controllers::competition_winner::routing();
+    let trade_winner_route: Router<Pool<Sqlite>> = controllers::trade_winner::routing();
+    let shared_idea_route: Router<Pool<Sqlite>> = controllers::shared_idea::routing();
+
+    let routing: IntoMakeService<Router> = Router::new()
         .route("/", get(root))
         .nest("/profits", profit_routing)
         .nest("/violation", violation_router)
@@ -47,12 +68,7 @@ async fn main() -> anyhow::Result<()> {
         .with_state(pool)
         .into_make_service();
 
-    let address: SocketAddr = SocketAddr::from(([127, 0, 0, 1], 8000));
-    println!("listening on {}", address);
-
-    axum::Server::bind(&address).serve(app).await.unwrap();
-
-    Ok(())
+    return routing;
 }
 
 async fn root() -> &'static str {
