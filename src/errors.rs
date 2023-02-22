@@ -12,7 +12,7 @@ impl IntoResponse for CustomError {
             Self::InternalServerError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
             }
-            Self::RecordNotFound => (StatusCode::NOT_FOUND, "Task Not Found"),
+            Self::RecordNotFound => (StatusCode::NOT_FOUND, "Record Not Found"),
         };
         (status, Json(json!({ "error": error_message }))).into_response()
     }

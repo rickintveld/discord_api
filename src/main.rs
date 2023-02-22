@@ -56,14 +56,16 @@ fn application(pool: Pool<Sqlite>) -> IntoMakeService<Router> {
     let competition_router: Router<Pool<Sqlite>> = controllers::competition_winner::routing();
     let trade_winner_route: Router<Pool<Sqlite>> = controllers::trade_winner::routing();
     let shared_idea_route: Router<Pool<Sqlite>> = controllers::shared_idea::routing();
+    let member_route: Router<Pool<Sqlite>> = controllers::member::routing();
 
     let routing: IntoMakeService<Router> = Router::new()
         .route("/", get(root))
-        .nest("/profits", profit_routing)
-        .nest("/violation", violation_router)
         .nest("/competition", competition_router)
-        .nest("/trade-winners", trade_winner_route)
+        .nest("/member", member_route)
+        .nest("/profits", profit_routing)
         .nest("/shared-idea", shared_idea_route)
+        .nest("/trade-winners", trade_winner_route)
+        .nest("/violation", violation_router)
         .layer(TraceLayer::new_for_http())
         .with_state(pool)
         .into_make_service();

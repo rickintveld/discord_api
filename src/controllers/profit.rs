@@ -48,7 +48,7 @@ async fn create(
     State(pool): State<SqlitePool>,
     Json(profit): Json<profit::NewProfit>,
 ) -> Result<(StatusCode, Json<profit::NewProfit>), CustomError> {
-    let sql = r#"INSERT INTO profit (user_id, profit, risk_to_reward, creation_date) values (?, ?, ?, ?)"#;
+    let sql = r#"INSERT INTO profit (user_id, profit, risk_to_reward, creation_date) values (?, ?, ?, ?)"#.to_string();
 
     let _ = sqlx::query(&sql)
         .bind(&profit.user_id)
