@@ -31,7 +31,7 @@ async fn all(State(pool): State<SqlitePool>) -> impl IntoResponse {
 
 async fn fetch(
     State(pool): State<SqlitePool>,
-    Path(user_id): Path<i32>,
+    Path(user_id): Path<i64>,
 ) -> Result<Json<profit::Profit>, CustomError> {
     let sql = r#"SELECT * FROM profit where user_id = ?"#.to_string();
 
