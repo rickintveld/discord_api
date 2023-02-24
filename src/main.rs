@@ -11,6 +11,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod controllers;
 mod errors;
 mod models;
+mod repositories;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
