@@ -1,14 +1,12 @@
-use crate::{errors::CustomError, models::member};
+use crate::{errors::CustomError, models::member, repositories::member_repository};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::response::IntoResponse;
 use axum::Json;
 use axum::{
     routing::{delete, get, post},
     Router,
 };
 use sqlx::{Pool, Sqlite, SqlitePool};
-use tokio::task::JoinSet;
 
 pub fn routing() -> Router<Pool<Sqlite>> {
     let router = Router::new()
@@ -21,28 +19,17 @@ pub fn routing() -> Router<Pool<Sqlite>> {
     router
 }
 
-async fn all(State(pool): State<SqlitePool>) -> impl IntoResponse {
-    let sql = r#"SELECT * FROM member "#.to_string();
+async fn all(State(pool): State<SqlitePool>) -> Result<Json<Vec<member::Member>>, CustomError> {
+    let members = member_repository::all(&pool).await?;
 
-    let members = sqlx::query_as::<_, member::Member>(&sql)
-        .fetch_all(&pool)
-        .await
-        .unwrap();
-
-    (StatusCode::OK, Json(members))
+    Ok(Json(members))
 }
 
 async fn fetch(
     State(pool): State<SqlitePool>,
     Path(user_id): Path<i64>,
 ) -> Result<Json<member::Member>, CustomError> {
-    let sql = r#"SELECT * FROM member where user_id = ?"#.to_string();
-
-    let member: member::Member = sqlx::query_as(&sql)
-        .bind(user_id)
-        .fetch_one(&pool)
-        .await
-        .map_err(|_| CustomError::RecordNotFound)?;
+    let member: member::Member = member_repository::find_by_user_id(&pool, user_id).await?;
 
     Ok(Json(member))
 }
@@ -50,37 +37,18 @@ async fn fetch(
 async fn create(
     State(pool): State<SqlitePool>,
     Json(member): Json<member::NewMember>,
-) -> Result<(StatusCode, Json<member::NewMember>), CustomError> {
-    let sql =
-        r#"INSERT INTO member (user_id, username, creation_date) values (?, ?, ?)"#.to_string();
+) -> Result<StatusCode, CustomError> {
+    let _create = member_repository::create(&pool, member).await;
 
-    let _ = sqlx::query(&sql)
-        .bind(&member.user_id)
-        .bind(&member.username)
-        .bind(&member.creation_date)
-        .execute(&pool)
-        .await
-        .map_err(|_| CustomError::InternalServerError)?;
-
-    Ok((StatusCode::CREATED, Json(member)))
+    Ok(StatusCode::CREATED)
 }
 
 async fn delete_by_user_id(
     State(pool): State<SqlitePool>,
     Path(user_id): Path<i64>,
 ) -> Result<StatusCode, CustomError> {
-    let find_query = r#"SELECT * FROM member where user_id = ?"#;
-    let _find_member: member::Member = sqlx::query_as(&find_query)
-        .bind(&user_id)
-        .fetch_one(&pool)
-        .await
-        .map_err(|_| CustomError::RecordNotFound)?;
-
-    sqlx::query(r#"DELETE FROM member WHERE user_id = ?"#)
-        .bind(&user_id)
-        .execute(&pool)
-        .await
-        .map_err(|_| CustomError::RecordNotFound)?;
+    let _find = member_repository::find_by_user_id(&pool, user_id).await?;
+    let _delete = member_repository::delete(&pool, user_id).await?;
 
     Ok(StatusCode::OK)
 }
@@ -89,25 +57,8 @@ async fn sync(
     State(pool): State<SqlitePool>,
     Json(members): Json<member::NewMembers>,
 ) -> Result<StatusCode, CustomError> {
-    let mut set: JoinSet<member::NewMember> = JoinSet::new();
-    let sql =
-        r#"INSERT INTO member (user_id, username, creation_date) values (?, ?, ?) ON CONFLICT DO NOTHING"#
-            .to_string();
-
     for member in members.members {
-        set.spawn(async move { member });
-    }
-
-    while let Some(result) = set.join_next().await {
-        let member: member::NewMember = result.unwrap();
-
-        let _ = sqlx::query(&sql)
-            .bind(&member.user_id)
-            .bind(&member.username)
-            .bind(&member.creation_date)
-            .execute(&pool)
-            .await
-            .map_err(|_| CustomError::InternalServerError)?;
+        let _ = member_repository::create(&pool, member).await?;
     }
 
     Ok(StatusCode::CREATED)
