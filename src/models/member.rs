@@ -14,3 +14,8 @@ pub struct NewMember {
     pub username: String,
     pub creation_date: String,
 }
+
+#[derive(sqlx::FromRow, Deserialize, Serialize)]
+pub struct NewMembers {
+    pub members: Vec<NewMember>,
+}
